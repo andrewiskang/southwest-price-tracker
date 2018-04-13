@@ -2,6 +2,7 @@ from __future__ import division
 from selenium import webdriver
 import datetime
 
+
 class FlightInfo(object):
     # contains all the necessary information to define a one-way flight:
     # flight #, departure date, origin, destination
@@ -29,7 +30,7 @@ class RecordedPrice(object):
     # contains flight price and timestamp
 
     def __init__(self, timestamp, price):
-        # return a RecordPrice object with timestamped price
+        # return a RecordedPrice object with timestamped price
         self.timestamp = timestamp
         self.price = price
 
@@ -67,7 +68,7 @@ def get_price(flight_info):
             # input departure date and submit
             departure_dt_field = driver.find_element_by_id("air-date-departure")
             departure_dt_field.clear()
-            departure_dt_field.send_keys(flight_info.departure_dt)
+            departure_dt_field.send_keys(str(flight_info.departure_dt))
             departure_dt_field.submit()
 
             # on next page, search for tier elements for the given flight #
@@ -95,4 +96,6 @@ def print_current_price(flight_info):
     flight_info.print_info()
     price.print_info()
 
-print_current_price(FlightInfo(1809, "4/25/2018", "SFO", "LAS"))
+
+f = FlightInfo(1809, datetime.date(2018, 4, 25), "SFO", "LAS")
+print_current_price(f)
