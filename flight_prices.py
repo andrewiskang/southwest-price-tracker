@@ -1,5 +1,8 @@
 from __future__ import division
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import datetime
 
 
@@ -71,7 +74,20 @@ def get_price(flight_info):
             departure_dt_field.send_keys(str(flight_info.departure_dt))
             departure_dt_field.submit()
 
-            # on next page, search for tier elements for the given flight #
+            # on next page, find all flight information and store them in array
+            try:
+                element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".air-booking-select-detail air-booking-select-detail_min-products air-booking-select-detail_min-duration-and-stops")))
+            except TimeoutException:
+                print("Timed out waiting for page to load")
+            print("got this far!")
+            flights = driver.find_elements_by_xpath("//li[@class='air-booking-select-detail air-booking-select-detail_min-products air-booking-select-detail_min-duration-and-stops']")
+            for flight in flights:
+                print(flight[0][0][0][0])
+
+
+            # need to fix below code!
+
+
             # there should be 3 tiers: Business Select, Anytime, Wanna Get Away
             tiers = driver.find_elements_by_xpath("//*[contains(@title,'Departing flight " + str(flight_info.flight_num) + "')]")
 
