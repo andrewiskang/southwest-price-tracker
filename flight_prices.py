@@ -7,7 +7,7 @@ class FlightInfo(object):
     # contains all the necessary information to define a one-way flight:
     # flight #, departure date, origin, destination
 
-    def __init__(self,flight_num, departure_dt, origin, destination):
+    def __init__(self, flight_num, departure_dt, origin, destination):
         # return a FlightInfo object with the required parameters
         self.flight_num = flight_num
         self.departure_dt = departure_dt
@@ -97,5 +97,5 @@ def print_current_price(flight_info):
     price.print_info()
 
 
-f = FlightInfo(1809, datetime.date(2018, 4, 25), "SFO", "LAS")
+f = FlightInfo(1449, datetime.date(2019, 1, 9), "MDW", "LAS")
 print_current_price(f)
