@@ -2,8 +2,10 @@ from __future__ import division
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 import datetime
+import sys
 
 
 class FlightInfo(object):
@@ -70,21 +72,26 @@ def get_price(flight_info):
 
             # input departure date and submit
             departure_dt_field = driver.find_element_by_id("air-date-departure")
-            departure_dt_field.clear()
+            departure_dt_field.click()
+            departure_dt_field.send_keys(Keys.BACK_SPACE)
             departure_dt_field.send_keys(str(flight_info.departure_dt))
             departure_dt_field.submit()
 
             # on next page, find all flight information and store them in array
             try:
-                element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".air-booking-select-detail air-booking-select-detail_min-products air-booking-select-detail_min-duration-and-stops")))
+            	print("got this far!")
+            	element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.air-booking-select-detail")))
             except TimeoutException:
-                print("Timed out waiting for page to load")
+            	print("Timed out waiting for page to load")
+            	driver.quit()
+            	sys.exit()
             print("got this far!")
-            flights = driver.find_elements_by_xpath("//li[@class='air-booking-select-detail air-booking-select-detail_min-products air-booking-select-detail_min-duration-and-stops']")
+            flights = driver.find_elements_by_css_selector("li.air-booking-select-detail")
+
+            print("got this far!")
             for flight in flights:
-                print(flight[0][0][0][0])
-
-
+            	print(flight)
+            	print("got this far!")
             # need to fix below code!
 
 
@@ -105,6 +112,7 @@ def get_price(flight_info):
         except:
             print("There was an issue. Retrying...")
             driver.quit()
+            sys.exit()
 
 def print_current_price(flight_info):
     # prints out flight information as well as its current price
@@ -112,6 +120,6 @@ def print_current_price(flight_info):
     flight_info.print_info()
     price.print_info()
 
-
-f = FlightInfo(1449, datetime.date(2019, 1, 9), "MDW", "LAS")
+if len(sys.argv) < 2:
+	f = FlightInfo(1449, datetime.date(2019, 1, 9).strftime('%m/%d/%Y'), "MDW", "LAS")
 print_current_price(f)
