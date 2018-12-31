@@ -62,12 +62,14 @@ def get_price(flight_info):
 
             # input origin
             origin_field = driver.find_element_by_id("air-city-departure")
-            origin_field.clear()
+            origin_field.click()
+            origin_field.send_keys(Keys.BACK_SPACE)
             origin_field.send_keys(flight_info.origin)
 
             # input destination
             destination_field = driver.find_element_by_id("air-city-arrival")
-            destination_field.clear()
+            destination_field.click()
+            destination_field.send_keys(Keys.BACK_SPACE)
             destination_field.send_keys(flight_info.destination)
 
             # input departure date and submit
@@ -79,19 +81,18 @@ def get_price(flight_info):
 
             # on next page, find all flight information and store them in array
             try:
-            	print("got this far!")
             	element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.air-booking-select-detail")))
             except TimeoutException:
             	print("Timed out waiting for page to load")
             	driver.quit()
             	sys.exit()
-            print("got this far!")
             flights = driver.find_elements_by_css_selector("li.air-booking-select-detail")
 
-            print("got this far!")
             for flight in flights:
-            	print(flight)
-            	print("got this far!")
+            	print(flight.get_attribute("value"))
+            	number = flight.find_element_by_css_selector("span.actionable--text")
+            	print(number)
+            	print(number.get_attribute("value"))
             # need to fix below code!
 
 
