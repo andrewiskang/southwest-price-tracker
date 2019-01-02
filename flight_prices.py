@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import datetime
 import sys
 import csv
+import time
 
 
 class FlightInfo(object):
@@ -87,6 +88,9 @@ def get_price(flight_info):
             	print("Timed out waiting for page to load")
             	driver.quit()
             	sys.exit()
+
+            time.sleep(3)
+
             flights = driver.find_elements_by_css_selector("li.air-booking-select-detail")
 
             for flight in flights:
@@ -124,7 +128,7 @@ def print_current_price(flight_info):
 def record_current_price(flight_info):
 	# records flight information to a CSV file
 	# if file does not exist in directory, creates one
-	flight_num = str(flight_info.flight_num)
+	flight_num = str(flight_info.flight_num).replace(" / ", "+")
 	departure_dt = str(flight_info.departure_dt)
 	origin = flight_info.origin
 	destination = flight_info.destination
