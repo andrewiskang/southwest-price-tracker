@@ -6,6 +6,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 import datetime
 import sys
+import csv
 
 
 class FlightInfo(object):
@@ -48,8 +49,8 @@ class RecordedPrice(object):
 def get_price(flight_info):
     # opens southwest site, searches for specific flight price given params
     # returns output as a RecordedPrice object
-
-    while True:
+    try_count = 0
+    while try_count < 5:
         try:
             # start up Chrome webdriver and point to Southwest website
             driver = webdriver.Chrome()
@@ -89,31 +90,30 @@ def get_price(flight_info):
             flights = driver.find_elements_by_css_selector("li.air-booking-select-detail")
 
             for flight in flights:
-            	print(flight.get_attribute("value"))
             	number = flight.find_element_by_css_selector("span.actionable--text")
-            	print(number)
-            	print(number.get_attribute("value"))
-            # need to fix below code!
+            	if number.text == ("# " + str(flight_info.flight_num)):
+            		selected_flight = flight
+            		break
 
+            if not selected_flight:
+            	print("Flight could not be found!")
+            	driver.quit()
+            	sys.exit()
 
-            # there should be 3 tiers: Business Select, Anytime, Wanna Get Away
-            tiers = driver.find_elements_by_xpath("//*[contains(@title,'Departing flight " + str(flight_info.flight_num) + "')]")
-
-            # select Wanna Get Away element and extract flight price from value
-            # note from the value, we can extract additional elements like time
-            wga_tier = tiers[-1]
-            wga_elements = wga_tier.get_attribute("value").split("@")
-            wga_price = wga_elements[11]
+            wga_element = selected_flight.find_element_by_css_selector("div.fare-button_primary-yellow")
+            wga_element = wga_element.find_element_by_css_selector("span.fare-button--value-total")
+            wga_price = wga_element.text
 
             # quit the driver and close all associated windows
             driver.quit()
 
             # return price with timestamp as a RecordedPrice object
             return RecordedPrice(datetime.datetime.utcnow(), wga_price)
+
         except:
             print("There was an issue. Retrying...")
             driver.quit()
-            sys.exit()
+            try_count += 1
 
 def print_current_price(flight_info):
     # prints out flight information as well as its current price
@@ -121,6 +121,33 @@ def print_current_price(flight_info):
     flight_info.print_info()
     price.print_info()
 
-if len(sys.argv) < 2:
-	f = FlightInfo(1449, datetime.date(2019, 1, 9).strftime('%m/%d/%Y'), "MDW", "LAS")
-print_current_price(f)
+def record_current_price(flight_info):
+	# records flight information to a CSV file
+	# if file does not exist in directory, creates one
+	flight_num = str(flight_info.flight_num)
+	departure_dt = str(flight_info.departure_dt)
+	origin = flight_info.origin
+	destination = flight_info.destination
+
+	with open("_".join([departure_dt, origin, destination, flight_num])+".csv", "a+") as file:
+		current_price = get_price(flight_info)
+		timestamp = str(current_price.timestamp)
+		price = current_price.price
+		
+		price_writer = csv.writer(file, delimiter=',')
+		price_writer.writerow([timestamp, price])
+
+
+
+
+# end product:
+#  - read from a file all flights whose prices should be checked
+#  - for each flight, record current price to CSV (separate files for each flight)
+#  - alert user if price drops, compared to the last recorded price
+#  - scheduled via cron to automate and run regularly
+
+with open("flights.csv") as file:
+	flight_reader = csv.reader(file, delimiter=',')
+	for row in flight_reader:
+		f = FlightInfo(row[0], datetime.datetime.strptime(row[1], "%m/%d/%y").strftime("%m-%d-%Y"), row[2], row[3])
+		record_current_price(f)
