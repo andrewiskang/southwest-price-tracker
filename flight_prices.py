@@ -55,6 +55,7 @@ def get_price(flight_info):
         try:
             # start up Chrome webdriver and point to Southwest website
             driver = webdriver.Chrome()
+            driver.set_window_position(2000, 2000)
             driver.implicitly_wait(15)
             driver.get("https://www.southwest.com")
 
@@ -81,29 +82,35 @@ def get_price(flight_info):
             departure_dt_field.send_keys(str(flight_info.departure_dt))
             departure_dt_field.submit()
 
+            
             # on next page, find all flight information and store them in array
+
+            # wait for page to fully load
             try:
             	element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.air-booking-select-detail")))
             except TimeoutException:
             	print("Timed out waiting for page to load")
             	driver.quit()
             	sys.exit()
-
             time.sleep(3)
 
+            # following selects all flight elements
             flights = driver.find_elements_by_css_selector("li.air-booking-select-detail")
 
+            # from flight elements, find the correct element (using flight num)
             for flight in flights:
             	number = flight.find_element_by_css_selector("span.actionable--text")
             	if number.text == ("# " + str(flight_info.flight_num)):
             		selected_flight = flight
             		break
 
+            # return error if flight not found
             if not selected_flight:
             	print("Flight could not be found!")
             	driver.quit()
             	sys.exit()
 
+            # locate WGA price
             wga_element = selected_flight.find_element_by_css_selector("div.fare-button_primary-yellow")
             wga_element = wga_element.find_element_by_css_selector("span.fare-button--value-total")
             wga_price = wga_element.text
@@ -133,13 +140,18 @@ def record_current_price(flight_info):
 	origin = flight_info.origin
 	destination = flight_info.destination
 
-	with open("_".join([departure_dt, origin, destination, flight_num])+".csv", "a+") as file:
-		current_price = get_price(flight_info)
-		timestamp = str(current_price.timestamp)
-		price = current_price.price
-		
-		price_writer = csv.writer(file, delimiter=',')
-		price_writer.writerow([timestamp, price])
+	# following opens/creates file for appending new timestamped price to
+	with open("flight_prices/"+"_".join([departure_dt, origin, destination, flight_num])+".csv", "a+") as file:
+		try:
+			current_price = get_price(flight_info)
+			timestamp = str(current_price.timestamp)
+			price = current_price.price
+			
+			price_writer = csv.writer(file, delimiter=',')
+			price_writer.writerow([timestamp, price])
+		except:
+			print("Exceeded number of attempts")
+			sys.exit()
 
 
 
