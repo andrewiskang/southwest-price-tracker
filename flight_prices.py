@@ -108,18 +108,18 @@ def get_price(flight_info):
             if not selected_flight:
             	print("Flight could not be found!")
             	driver.quit()
-            	sys.exit()
 
-            # locate WGA price
-            wga_element = selected_flight.find_element_by_css_selector("div.fare-button_primary-yellow")
-            wga_element = wga_element.find_element_by_css_selector("span.fare-button--value-total")
-            wga_price = wga_element.text
+            else:
+            	# locate WGA price
+            	wga_element = selected_flight.find_element_by_css_selector("div.fare-button_primary-yellow")
+            	wga_element = wga_element.find_element_by_css_selector("span.fare-button--value-total")
+            	wga_price = wga_element.text
 
-            # quit the driver and close all associated windows
-            driver.quit()
+            	# quit the driver and close all associated windows
+            	driver.quit()
 
-            # return price with timestamp as a RecordedPrice object
-            return RecordedPrice(datetime.datetime.utcnow(), wga_price)
+            	# return price with timestamp as a RecordedPrice object
+            	return RecordedPrice(datetime.datetime.utcnow(), wga_price)
 
         except:
             print("There was an issue. Retrying...")
@@ -135,24 +135,26 @@ def print_current_price(flight_info):
 def record_current_price(flight_info):
 	# records flight information to a CSV file
 	# if file does not exist in directory, creates one
-	flight_num = str(flight_info.flight_num).replace(" / ", "+")
-	departure_dt = str(flight_info.departure_dt)
-	origin = flight_info.origin
-	destination = flight_info.destination
+	if flight_info.departure_dt <= datetime.datetime.utcnow().strftime("%m-%d-%Y"):
+		print("Flight date has already passed or is today")
+		
+	else:
+		flight_num = str(flight_info.flight_num).replace(" / ", "+")
+		departure_dt = str(flight_info.departure_dt)
+		origin = flight_info.origin
+		destination = flight_info.destination
 
-	# following opens/creates file for appending new timestamped price to
-	with open("flight_prices/"+"_".join([departure_dt, origin, destination, flight_num])+".csv", "a+") as file:
-		try:
-			current_price = get_price(flight_info)
-			timestamp = str(current_price.timestamp)
-			price = current_price.price
-			
-			price_writer = csv.writer(file, delimiter=',')
-			price_writer.writerow([timestamp, price])
-		except:
-			print("Exceeded number of attempts")
-			sys.exit()
-
+		# following opens/creates file for appending new timestamped price to
+		with open("flight_prices/"+"_".join([departure_dt, origin, destination, flight_num])+".csv", "a+") as file:
+			try:
+				current_price = get_price(flight_info)
+				timestamp = str(current_price.timestamp)
+				price = current_price.price
+				
+				price_writer = csv.writer(file, delimiter=',')
+				price_writer.writerow([timestamp, price])
+			except:
+				print("Exceeded number of attempts")
 
 
 
