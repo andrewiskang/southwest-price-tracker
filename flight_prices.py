@@ -1,13 +1,24 @@
 from __future__ import division
+import datetime
+import sys
+import os
+import csv
+import time
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
-import datetime
-import sys
-import csv
-import time
+from selenium.webdriver.chrome.options import Options
+chrome_options = Options()
+#chrome_options.add_argument("--disable-extensions")
+#chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--headless")
+# specify the desired user agent
+user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'
+chrome_options.add_argument(f'user-agent={user_agent}')
+driver = webdriver.Chrome(options=chrome_options, executable_path=os.getcwd() + '/chromedriver')
 
 
 class FlightInfo(object):
@@ -53,59 +64,36 @@ def get_price(flight_info):
     try_count = 0
     while try_count < 5:
         try:
-            # start up Chrome webdriver and point to Southwest website
-            driver = webdriver.Chrome()
-            driver.set_window_position(2000, 2000)
-            driver.implicitly_wait(15)
-            driver.get("https://www.southwest.com/air/booking/select.html"
-                     + "?int=HOMEQBOMAIR"
-                     + "&adultPassengersCount=1"
-                     + "&departureDate="+flight_info.departure_dt
-                     + "&departureTimeOfDay=ALL_DAY"
-                     + "&destinationAirportCode="+flight_info.destination
-                     + "&fareType=USD"
-                     + "&originationAirportCode="+flight_info.origin
-                     + "&passengerType=ADULT"
-                     + "&promoCode="
-                     + "&reset=true"
-                     + "&returnDate="
-                     + "&returnTimeOfDay=ALL_DAY"
-                     + "&seniorPassengersCount=0"
-                     + "&tripType=oneway")
+            # point webdriver to Southwest website
+            url = ("https://www.southwest.com/air/booking/select.html"
+                 + "?int=HOMEQBOMAIR"
+                 + "&adultPassengersCount=1"
+                 + "&departureDate="+flight_info.departure_dt
+                 + "&departureTimeOfDay=ALL_DAY"
+                 + "&destinationAirportCode="+flight_info.destination
+                 + "&fareType=USD"
+                 + "&originationAirportCode="+flight_info.origin
+                 + "&passengerType=ADULT"
+                 + "&promoCode="
+                 + "&reset=true"
+                 + "&returnDate="
+                 + "&returnTimeOfDay=ALL_DAY"
+                 + "&seniorPassengersCount=0"
+                 + "&tripType=oneway"
+            )
+            driver.get(url)
+            driver.implicitly_wait(10)
+            print(url)
 
-            """# toggle one-way, not roundtrip
-            one_way_button = driver.find_element_by_id("trip-type-one-way")
-            one_way_button.click()
-
-            # input origin
-            origin_field = driver.find_element_by_id("air-city-departure")
-            origin_field.click()
-            origin_field.send_keys(Keys.BACK_SPACE)
-            origin_field.send_keys(flight_info.origin)
-
-            # input destination
-            destination_field = driver.find_element_by_id("air-city-arrival")
-            destination_field.click()
-            destination_field.send_keys(Keys.BACK_SPACE)
-            destination_field.send_keys(flight_info.destination)
-
-            # input departure date and submit
-            departure_dt_field = driver.find_element_by_id("air-date-departure")
-            departure_dt_field.click()
-            departure_dt_field.send_keys(Keys.BACK_SPACE)
-            departure_dt_field.send_keys(str(flight_info.departure_dt))
-            departure_dt_field.submit()"""
-
-            
             # on next page, find all flight information and store them in array
-
+            
             # wait for page to fully load
             try:
                 element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "li.air-booking-select-detail")))
             except TimeoutException:
                 print("Timed out waiting for page to load")
-                driver.quit()
-                sys.exit()
+                try_count += 1
+                continue
             time.sleep(3)
 
             # following selects all flight elements
@@ -121,7 +109,6 @@ def get_price(flight_info):
             # return error if flight not found
             if not selected_flight:
                 print("Flight could not be found!")
-                driver.quit()
 
             else:
                 # locate WGA price
@@ -129,15 +116,11 @@ def get_price(flight_info):
                 wga_element = wga_element.find_element_by_css_selector("span.fare-button--value-total")
                 wga_price = wga_element.text
 
-                # quit the driver and close all associated windows
-                driver.quit()
-
                 # return price with timestamp as a RecordedPrice object
                 return RecordedPrice(datetime.datetime.utcnow(), wga_price)
 
         except:
             print("There was an issue. Retrying...")
-            driver.quit()
             try_count += 1
 
 def print_current_price(flight_info):
@@ -170,7 +153,12 @@ def record_current_price(flight_info):
             except:
                 print("Exceeded number of attempts")
 
+if (len(sys.argv) != 5):
+    print('error')
+else:
+    print_current_price(FlightInfo(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]))
 
+driver.quit()
 
 # end product:
 #  - read from a file all flights whose prices should be checked
@@ -178,9 +166,9 @@ def record_current_price(flight_info):
 #  - alert user if price drops, compared to the last recorded price
 #  - scheduled via cron to automate and run regularly
 
-with open("flights.csv") as file:
-    flight_reader = csv.reader(file, delimiter=',')
-    for row in flight_reader:
-        f = FlightInfo(row[0], datetime.datetime.strptime(row[1], "%m/%d/%y").strftime("%Y-%m-%d"), row[2], row[3])
-        f.print_info()
-        record_current_price(f)
+# with open("flights.csv") as file:
+#     flight_reader = csv.reader(file, delimiter=',')
+#     for row in flight_reader:
+#         f = FlightInfo(row[0], datetime.datetime.strptime(row[1], "%m/%d/%y").strftime("%Y-%m-%d"), row[2], row[3])
+#         f.print_info()
+#         record_current_price(f)
