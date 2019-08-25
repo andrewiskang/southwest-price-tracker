@@ -157,16 +157,3 @@ else:
     flight.print_price()
 
 driver.quit()
-
-# end product:
-#  - read from a file all flights whose prices should be checked
-#  - for each flight, record current price to CSV (separate files for each flight)
-#  - alert user if price drops, compared to the last recorded price
-#  - scheduled via cron to automate and run regularly
-
-# with open("flights.csv") as file:
-#     flight_reader = csv.reader(file, delimiter=',')
-#     for row in flight_reader:
-#         f = FlightInfo(row[0], datetime.datetime.strptime(row[1], "%m/%d/%y").strftime("%Y-%m-%d"), row[2], row[3])
-#         f.print_info()
-#         record_price(f)
