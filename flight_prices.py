@@ -14,28 +14,48 @@ from selenium.webdriver.chrome.options import Options
 chrome_options = Options()
 #chrome_options.add_argument("--disable-extensions")
 #chrome_options.add_argument("--disable-gpu")
-chrome_options.add_argument("--headless")
+# chrome_options.add_argument("--headless")
 # specify the desired user agent
 user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'
 chrome_options.add_argument(f'user-agent={user_agent}')
 driver = webdriver.Chrome(options=chrome_options, executable_path=os.getcwd() + '/chromedriver')
+
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import firestore
+
+# Use a service account
+cred = credentials.Certificate('southwest-flight-prices-firebase-adminsdk-m96sc-3c83a2828a.json')
+firebase_admin.initialize_app(cred)
+
+db = firestore.client()
+
+# doc_ref = db.collection('flights')
+
+# try:
+#     docs = doc_ref.stream()
+#     for doc in docs:
+#         print('Document data: {} => {}\n{}\n{}'.format(doc.id, doc, doc.to_dict(), doc.to_dict()['origin']))
+# except:
+#     print('No such document!')
 
 
 class FlightInfo(object):
     # contains all the necessary information to define a one-way flight:
     # flight #, departure date, origin, destination
 
-    def __init__(self, flight_num, departure_dt, origin, destination):
+    def __init__(self, id, flight_number, departure_date, origin, destination):
         # return a FlightInfo object with the required parameters
-        self.flight_num = flight_num
-        self.departure_dt = departure_dt
+        self.id = id
+        self.flight_number = flight_number
+        self.departure_date = departure_date
         self.origin = origin
         self.destination = destination
 
     def print_info(self):
-        # prints all information pertaining to the flight_num
-        print("flight #:        " + str(self.flight_num))
-        print("departure date:  " + str(self.departure_dt))
+        # prints all information pertaining to the flight_number
+        print("flight #:        " + str(self.flight_number))
+        print("departure date:  " + str(self.departure_date))
         print("origin:          " + self.origin)
         print("destination:     " + self.destination)
 
@@ -54,7 +74,7 @@ class FlightInfo(object):
                 url = ("https://www.southwest.com/air/booking/select.html"
                      + "?int=HOMEQBOMAIR"
                      + "&adultPassengersCount=1"
-                     + "&departureDate="+self.departure_dt
+                     + "&departureDate="+self.departure_date.strftime("%Y-%m-%d")
                      + "&departureTimeOfDay=ALL_DAY"
                      + "&destinationAirportCode="+self.destination
                      + "&fareType=USD"
@@ -88,7 +108,7 @@ class FlightInfo(object):
                 # from flight elements, find the correct element (using flight num)
                 for flight in flights:
                     number = flight.find_element_by_css_selector("span.actionable--text")
-                    if number.text == ("# " + str(self.flight_num)):
+                    if number.text == ("# " + str(self.flight_number)):
                         selected_flight = flight
                         break
 
@@ -116,23 +136,19 @@ class FlightInfo(object):
         price.print_info()
 
     def record_price(self):
-        # records flight information to a CSV file
-        # if file does not exist in directory, creates one
-        if self.departure_dt <= datetime.datetime.utcnow().strftime("%Y-%m-%d"):
+        # records flight information to google cloud firestore
+        if self.departure_date.strftime("%Y-%m-%d") <= datetime.datetime.utcnow().strftime("%Y-%m-%d"):
             print("Flight date has already passed or is today")
-            
         else:
-            # following opens/creates file for appending new timestamped price to
-            with open("flight_prices/"+"_".join([self.departure_dt, self.origin, self.destination, self.flight_num])+".csv", "a+") as file:
-                try:
-                    current_price = self.get_price()
-                    timestamp = str(current_price.timestamp)
-                    price = current_price.price
-                    
-                    price_writer = csv.writer(file, delimiter=',')
-                    price_writer.writerow([timestamp, price])
-                except:
-                    print("Exceeded number of attempts")
+            try:
+                price = self.get_price()
+                db.collection('prices').add({
+                    'flight_id': self.id,
+                    'price': price.price,
+                    'timestamp': firestore.SERVER_TIMESTAMP
+                })
+            except:
+                print("Exceeded number of attempts")
 
 
 class RecordedPrice(object):
@@ -150,10 +166,15 @@ class RecordedPrice(object):
 
 
 
-if (len(sys.argv) != 5):
+if (len(sys.argv) != 1):
     print('error')
 else:
-    flight = FlightInfo(sys.argv[1], datetime.datetime.strptime(sys.argv[2], "%m/%d/%y").strftime("%Y-%m-%d"), sys.argv[3], sys.argv[4])
-    flight.print_price()
+    docs = db.collection('flights').stream()
+    for doc in docs:
+        data = doc.to_dict()
+        flight = FlightInfo(doc.id, data['flight_number'], data['departure_date'], data['origin'], data['destination'])
+        flight.record_price()
 
 driver.quit()
+
+
