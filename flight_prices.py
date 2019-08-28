@@ -14,7 +14,7 @@ from selenium.webdriver.chrome.options import Options
 chrome_options = Options()
 #chrome_options.add_argument("--disable-extensions")
 #chrome_options.add_argument("--disable-gpu")
-# chrome_options.add_argument("--headless")
+chrome_options.add_argument("--headless")
 # specify the desired user agent
 user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'
 chrome_options.add_argument(f'user-agent={user_agent}')
@@ -25,7 +25,7 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 
 # Use a service account
-cred = credentials.Certificate('southwest-flight-prices-firebase-adminsdk-m96sc-3c83a2828a.json')
+cred = credentials.Certificate('ServiceAccountKey.json')
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
@@ -143,7 +143,7 @@ class FlightInfo(object):
             try:
                 price = self.get_price()
                 db.collection('prices').add({
-                    'flight_id': self.id,
+                    'flight_id': db.document('flights/'+self.id),
                     'price': price.price,
                     'timestamp': firestore.SERVER_TIMESTAMP
                 })
