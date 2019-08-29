@@ -44,9 +44,23 @@ class Database(object):
 
     # adds a flight with the given parameters
     def addFlight(self, flight_number, departure_date, origin, destination):
+        # format date
+        departure_date = datetime.datetime.strptime(departure_date, '%m/%d/%y')
+        # if flight already exists, return that flight id
+        flights = (self.db.collection('flights')
+            .where('flight_number', '==', flight_number)
+            .where('departure_date', '==', departure_date)
+            .where('origin', '==', origin)
+            .where('destination', '==', destination)
+            .stream()
+        )
+        counter = 0
+        for flight in flights:
+            if flight.id:
+                return flight.id
         return self.db.collection('flights').add({
             'flight_number': flight_number,
             'departure_date': departure_date,
             'origin': origin,
             'destination': destination
-        })
+        })[1].id
