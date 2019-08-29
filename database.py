@@ -41,3 +41,12 @@ class Database(object):
         for flight in flights:
             data = flight.to_dict()
             self.recordFlightPrice(flight.id)
+
+    # adds a flight with the given parameters
+    def addFlight(self, flight_number, departure_date, origin, destination):
+        return self.db.collection('flights').add({
+            'flight_number': flight_number,
+            'departure_date': departure_date,
+            'origin': origin,
+            'destination': destination
+        })
