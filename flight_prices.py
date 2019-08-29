@@ -117,23 +117,15 @@ class FlightInfo(object):
                     print("Flight could not be found!")
 
                 else:
-                    # locate WGA price
+                    # locate and return WGA price
                     wga_element = selected_flight.find_element_by_css_selector("div.fare-button_primary-yellow")
                     wga_element = wga_element.find_element_by_css_selector("span.fare-button--value-total")
                     wga_price = wga_element.text
-
-                    # return price with timestamp as a RecordedPrice object
-                    return RecordedPrice(datetime.datetime.utcnow(), wga_price)
+                    return wga_price
 
             except:
                 print("There was an issue. Retrying...")
                 try_count += 1
-
-    def print_price(self):
-        # prints out flight information as well as its current price
-        price = self.get_price()
-        self.print_info()
-        price.print_info()
 
     def record_price(self):
         # records flight information to google cloud firestore
@@ -149,21 +141,6 @@ class FlightInfo(object):
                 })
             except:
                 print("Exceeded number of attempts")
-
-
-class RecordedPrice(object):
-    # contains flight price and timestamp
-
-    def __init__(self, timestamp, price):
-        # return a RecordedPrice object with timestamped price
-        self.timestamp = timestamp
-        self.price = price
-
-    def print_info(self):
-        # prints the timestamp and recorded price
-        print("timestamp:       " + str(self.timestamp))
-        print("flight price:    " + self.price)
-
 
 
 if (len(sys.argv) != 1):
