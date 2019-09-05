@@ -12,7 +12,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 chrome_options = Options()
-chrome_options.add_argument('--headless')
+# chrome_options.add_argument('--headless')
 user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'
 chrome_options.add_argument(f'user-agent={user_agent}')
 
@@ -38,7 +38,7 @@ class FlightInfo(object):
 
     def getPrice(self):
         # opens southwest site, searches for and returns price of specified flight
-        driver = webdriver.Chrome(options=chrome_options, executable_path=os.getcwd() + '/chromedriver')
+        driver = webdriver.Chrome(options=chrome_options, executable_path=os.getcwd() + '/modified_chromedriver')
 
         try_count = 0
         while try_count < 5:
@@ -62,6 +62,7 @@ class FlightInfo(object):
                 )
                 driver.get(url)
                 driver.implicitly_wait(10)
+                print(url)
 
                 # on next page, find all flight information and store them in array
                 

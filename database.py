@@ -27,8 +27,7 @@ class Database(object):
                 price = flightInfo.getPrice()
                 if price is None:
                     print('Price not found for the specified flight')
-                self.db.collection('prices').add({
-                    'flight_id': self.db.document('flights/'+id),
+                self.db.collection('flights').document(id).collection('prices').add({
                     'price': price,
                     'timestamp': firestore.SERVER_TIMESTAMP
                 })
@@ -37,10 +36,15 @@ class Database(object):
 
     # go through every flight in firestore and record their current prices
     def recordAllPrices(self):
-        flights = db.collection('flights').stream()
-        for flight in flights:
-            data = flight.to_dict()
-            self.recordFlightPrice(flight.id)
+        try:
+            flights = self.db.collection('flights').stream()
+            for flight in flights:
+                data = flight.to_dict()
+                self.recordFlightPrice(flight.id)
+            return True
+        except Exception as e:
+            print(e)
+            return False
 
     # adds a flight with the given parameters
     def addFlight(self, flight_number, departure_date, origin, destination):
